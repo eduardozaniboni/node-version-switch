@@ -1,0 +1,11 @@
+# Pastas geradas pelo Node Version Switch
+nodejs-versions/ nodejs-configs/
+
+# ARquivos temporários do PowerShell
+*.tmp *.bak
+
+# Arquivo do sistema operacional
+Thumbs.db .DS_Store
+
+# Arquivo de log
+*.log
