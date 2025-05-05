@@ -55,6 +55,40 @@ $configFile = Join-Path $configDir "config.json"
 
 $validCommands = @("list", "use", "install", "uninstall", "current", "setup", "reset", "available", "help")
 
+function Unblock-Script {
+    $scriptPath = [System.IO.Path]::GetFullPath($PSCommandPath)
+    try {
+        if (Get-Item -Path $scriptPath | Get-ItemProperty -Name Zone.Identifier -ErrorAction SilentlyContinue) {
+            Unblock-File -Path $scriptPath -ErrorAction Stop
+            Write-Host "[+] Script $scriptPath unblocked successfully." -ForegroundColor Green
+        }
+    }
+    catch {
+        Write-Host "[!] Failed to unblock script $scriptPath. Error: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "Manually run: Unblock-File -Path $scriptPath" -ForegroundColor Yellow
+    }
+}
+
+function Unblock-ProjectFiles {
+    param ($RootPath)
+    try {
+        $files = Get-ChildItem -Path $RootPath -Recurse -File
+        foreach ($file in $files) {
+            if ($file | Get-ItemProperty -Name Zone.Identifier -ErrorAction SilentlyContinue) {
+                Unblock-File -Path $file.FullName -ErrorAction Stop
+                Write-Host "[+] Unblocked file: $($file.FullName)" -ForegroundColor Green
+            }
+        }
+    }
+    catch {
+        Write-Host "[!] Failed to unblock files in $RootPath. Error: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "Manually run: Get-ChildItem -Path $RootPath -Recurse -File | Unblock-File" -ForegroundColor Yellow
+    }
+}
+
+
+Unblock-Script
+
 function Show-Help {
     Write-Host "`n[!] Invalid or unspecified command." -ForegroundColor Red
     exit 1
@@ -465,6 +499,9 @@ function Download-Version {
     Remove-Item -Path "$destPath\node-v$version-$archSuffix" -Recurse -Force
     Remove-Item -Path $zipFile -Force
 
+    # [ALTERAÇÃO] Desbloquear arquivos baixados (ZIP extraído)
+    Unblock-ProjectFiles -RootPath $destPath
+
     Write-Host "`n[+] Download and extraction of version v$version ($arch) completed." -ForegroundColor Green
 }
 
@@ -523,6 +560,9 @@ function Show-Current {
 }
 
 function Initialize {
+    # [ALTERAÇÃO] Desbloquear arquivos na pasta raiz durante o setup
+    Unblock-ProjectFiles -RootPath $projectRoot
+
     try {
         $testFile = Join-Path $projectRoot "test_$(Get-Random).tmp"
         New-Item -Path $testFile -ItemType File -Force | Out-Null

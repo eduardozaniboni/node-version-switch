@@ -55,6 +55,40 @@ $configFile = Join-Path $configDir "config.json"
 
 $validCommands = @("list", "use", "install", "uninstall", "current", "setup", "reset", "available", "help")
 
+function Unblock-Script {
+    $scriptPath = [System.IO.Path]::GetFullPath($PSCommandPath)
+    try {
+        if (Get-Item -Path $scriptPath | Get-ItemProperty -Name Zone.Identifier -ErrorAction SilentlyContinue) {
+            Unblock-File -Path $scriptPath -ErrorAction Stop
+            Write-Host "[+] O script $scriptPath foi desbloqueado com sucesso." -ForegroundColor Green
+        }
+    }
+    catch {
+        Write-Host "[!] Falha para desbloquear o script $scriptPath. Erro: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "Execute manualmente: Unblock-File -Path $scriptPath" -ForegroundColor Yellow
+    }
+}
+
+function Unblock-ProjectFiles {
+    param ($RootPath)
+    try {
+        $files = Get-ChildItem -Path $RootPath -Recurse -File
+        foreach ($file in $files) {
+            if ($file | Get-ItemProperty -Name Zone.Identifier -ErrorAction SilentlyContinue) {
+                Unblock-File -Path $file.FullName -ErrorAction Stop
+                Write-Host "[+] Arquivo desbloqueado: $($file.FullName)" -ForegroundColor Green
+            }
+        }
+    }
+    catch {
+        Write-Host "[!] Falha para desbloquear arquivos em $RootPath. Erro: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "Execute manualmente: Get-ChildItem -Path $RootPath -Recurse -File | Unblock-File" -ForegroundColor Yellow
+    }
+}
+
+
+Unblock-Script
+
 function Show-Help {
     Write-Host "`n[!] Comando inválido ou não especificado." -ForegroundColor Red
     exit 1
